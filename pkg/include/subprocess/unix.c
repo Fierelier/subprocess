@@ -14,17 +14,33 @@ int subprocess_init(void) {
 		close(pipe_##pname[n]); \
 	}
 
+#define subprocess_pipe_err(n) \
+	{ \
+		char _pipeout = (char)n; \
+		write(pipe_fork[1],&_pipeout,1); \
+		close(pipe_fork[1]); \
+		exit(n); \
+		return n; \
+	}
+
 int subprocess_open(subprocess_proc_t * output, char ** cmd, int hook_stdout, int hook_stderr, int hook_stdin) {
 	int pipe_stdout[2];
 	int pipe_stderr[2];
 	int pipe_stdin[2];
+	int pipe_fork[2];
 	
 	output->i_stdout = -1;
 	output->i_stderr = -1;
 	output->i_stdin = -1;
 	
+	if (pipe(pipe_fork) == -1) {
+		return SUBPROCESS_MALLOC;
+	}
+	
 	if (hook_stdout) {
 		if (pipe(pipe_stdout) == -1) {
+			close(pipe_fork[0]);
+			close(pipe_fork[1]);
 			return SUBPROCESS_MALLOC;
 		}
 	}
@@ -32,6 +48,8 @@ int subprocess_open(subprocess_proc_t * output, char ** cmd, int hook_stdout, in
 	if (hook_stderr) {
 		if (pipe(pipe_stderr) == -1) {
 			subprocess_clean_pipe(stdout);
+			close(pipe_fork[0]);
+			close(pipe_fork[1]);
 			return SUBPROCESS_MALLOC;
 		}
 	}
@@ -40,17 +58,41 @@ int subprocess_open(subprocess_proc_t * output, char ** cmd, int hook_stdout, in
 		if (pipe(pipe_stdin) == -1) {
 			subprocess_clean_pipe(stderr);
 			subprocess_clean_pipe(stdout);
+			close(pipe_fork[0]);
+			close(pipe_fork[1]);
 			return SUBPROCESS_MALLOC;
 		}
 	}
 	
 	pid_t pid = fork();
 	if (pid == -1) {
+		subprocess_clean_pipe(stdin);
+		subprocess_clean_pipe(stderr);
+		subprocess_clean_pipe(stdout);
+		close(pipe_fork[0]);
+		close(pipe_fork[1]);
 		return SUBPROCESS_MALLOC;
 	}
 	
-	int drtn;
 	if (pid == 0) { // Child
+		int drtn;
+		close(pipe_fork[0]);
+		
+		int flags = fcntl(pipe_fork[1], F_GETFD);
+		if (flags == -1) {
+			subprocess_clean_pipe(stdout);
+			subprocess_clean_pipe(stderr);
+			subprocess_clean_pipe(stdin);
+			subprocess_pipe_err(SUBPROCESS_OTHER);
+		}
+		
+		if (fcntl(pipe_fork[1], F_SETFD, flags | FD_CLOEXEC) == -1) {
+			subprocess_clean_pipe(stdout);
+			subprocess_clean_pipe(stderr);
+			subprocess_clean_pipe(stdin);
+			subprocess_pipe_err(SUBPROCESS_OTHER);
+		}
+		
 		if (hook_stdout) {
 			drtn = dup2(pipe_stdout[1],STDOUT_FILENO);
 			close(pipe_stdout[0]);
@@ -58,7 +100,7 @@ int subprocess_open(subprocess_proc_t * output, char ** cmd, int hook_stdout, in
 				close(pipe_stdout[1]);
 				subprocess_clean_pipe(stdin);
 				subprocess_clean_pipe(stderr);
-				return SUBPROCESS_MALLOC;
+				subprocess_pipe_err(SUBPROCESS_MALLOC);
 			}
 		}
 		
@@ -69,7 +111,7 @@ int subprocess_open(subprocess_proc_t * output, char ** cmd, int hook_stdout, in
 				close(pipe_stderr[1]);
 				subprocess_clean_pipe_one(stdout,1);
 				subprocess_clean_pipe(stdin);
-				return SUBPROCESS_MALLOC;
+				subprocess_pipe_err(SUBPROCESS_MALLOC);
 			}
 		}
 		
@@ -80,13 +122,18 @@ int subprocess_open(subprocess_proc_t * output, char ** cmd, int hook_stdout, in
 				close(pipe_stdin[1]);
 				subprocess_clean_pipe_one(stderr,1);
 				subprocess_clean_pipe_one(stdout,1);
-				return SUBPROCESS_MALLOC;
+				subprocess_pipe_err(SUBPROCESS_MALLOC);
 			}
 		}
 		
 		execvp(cmd[0],cmd);
-		return SUBPROCESS_OTHER;
+		subprocess_clean_pipe_one(stdout,0);
+		subprocess_clean_pipe_one(stderr,0);
+		subprocess_clean_pipe_one(stdin,1);
+		subprocess_pipe_err(SUBPROCESS_OTHER);
 	} else { // Parent
+		close(pipe_fork[1]);
+		
 		if (hook_stdout) {
 			close(pipe_stdout[1]);
 			output->i_stdout = pipe_stdout[0];
@@ -99,6 +146,25 @@ int subprocess_open(subprocess_proc_t * output, char ** cmd, int hook_stdout, in
 			close(pipe_stdin[0]);
 			output->i_stdin = pipe_stdin[1];
 		}
+		
+		char rtn;
+		ssize_t n = read(pipe_fork[0], &rtn, 1);
+		close(pipe_fork[0]);
+		
+		// Any error state
+		if ((n == -1) || (n == 1)) {
+			waitpid(pid,NULL,0);
+			subprocess_clean_pipe_one(stdout,0);
+			subprocess_clean_pipe_one(stderr,0);
+			subprocess_clean_pipe_one(stdin,1);
+			
+			// Expected-ish error
+			if (n == 1) { return (int)rtn; }
+			
+			// Unknown
+			return SUBPROCESS_OTHER;
+		}
+		
 		output->pid = pid;
 		return 0;
 	}
