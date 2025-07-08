@@ -4,7 +4,7 @@ A Python-inspired cross-platform subprocess library for C99. Works on Unix and W
 **You don't need to compile this as a library.** You can simply include `pkg/include/subprocess/subprocess.c`.
 
 ## Compile
-`./make.sh` -- You may set `CC`, `CFLAGS` and `LDFLAGS` environment variables. This will create `libsubprocess.so` and the test program: `subprocess-test`.
+`./make.sh` -- You may set `CC`, `CFLAGS` and `LDFLAGS` environment variables. This will create `libsubprocess.so`.
 
 ## Pack
 `./pack.sh` -- Makes a gzip compressed tar that can be installed.
