@@ -12,11 +12,8 @@
 #endif
 
 int subprocess_init(void);
-int subprocess_open(subprocess_proc_t * output, char ** cmd, int hook_stdout, int hook_stderr, int hook_stdin);
+int subprocess_open(subprocess_proc_t * output, char ** cmd);
 int subprocess_wait(subprocess_return_t * rtn, subprocess_proc_t * proc, subprocess_time_t max_wait);
-int subprocess_read_stdout(char * output, subprocess_pipesize_t size, subprocess_pipesize_t * size_out, subprocess_proc_t * proc);
-int subprocess_read_stderr(char * output, subprocess_pipesize_t size, subprocess_pipesize_t * size_out, subprocess_proc_t * proc);
-int subprocess_write_stdin(char * input, subprocess_pipesize_t size, subprocess_proc_t * proc);
 int subprocess_terminate(subprocess_proc_t * proc);
 int subprocess_kill(subprocess_proc_t * proc);
 int subprocess_suspend(subprocess_proc_t * proc);

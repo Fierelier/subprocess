@@ -13,9 +13,6 @@ typedef struct subprocess_proc_t {
 	HANDLE hProcess;
 	HANDLE hThread;
 	subprocess_pid_t pid;
-	HANDLE stdout_handle;
-	HANDLE stderr_handle;
-	HANDLE stdin_handle;
 	BOOL suspended;
 } subprocess_proc_t;
 

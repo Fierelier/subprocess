@@ -59,12 +59,6 @@ char * subprocess_windows_cmdstr(char ** argv) {
 	return command;
 }
 
-#define subprocess_clean_pipe(pname) \
-	if (hook_##pname) { \
-		CloseHandle(pipe_##pname##_rd); \
-		CloseHandle(pipe_##pname##_wr); \
-	}
-
 /*
 void PrintErrorMessage(DWORD errorCode) {
     LPVOID lpMsgBuf;
@@ -86,65 +80,10 @@ void PrintErrorMessage(DWORD errorCode) {
 }
 */
 
-int subprocess_open(subprocess_proc_t * output, char ** cmd, int hook_stdout, int hook_stderr, int hook_stdin) {
+int subprocess_open(subprocess_proc_t * output, char ** cmd) {
 	char * wcmd = subprocess_windows_cmdstr(cmd);
 	if (wcmd == NULL) {
 		return SUBPROCESS_MALLOC;
-	}
-	
-	HANDLE pipe_stdout_rd = NULL;
-	HANDLE pipe_stdout_wr = NULL;
-	HANDLE pipe_stderr_rd = NULL;
-	HANDLE pipe_stderr_wr = NULL;
-	HANDLE pipe_stdin_rd = NULL;
-	HANDLE pipe_stdin_wr = NULL;
-	
-	if (hook_stdout) {
-		if (!CreatePipe(&pipe_stdout_rd, &pipe_stdout_wr, &subprocess_windows_sa, 0)) {
-			free(wcmd);
-			return SUBPROCESS_MALLOC;
-		}
-		
-		if (!SetHandleInformation(pipe_stdout_rd, HANDLE_FLAG_INHERIT, 0)) {
-			free(wcmd);
-			CloseHandle(pipe_stdout_rd);
-			CloseHandle(pipe_stdout_wr);
-			return SUBPROCESS_OTHER;
-		}
-	}
-	
-	if (hook_stderr) {
-		if (!CreatePipe(&pipe_stderr_rd, &pipe_stderr_wr, &subprocess_windows_sa, 0)) {
-			free(wcmd);
-			subprocess_clean_pipe(stdout);
-			return SUBPROCESS_MALLOC;
-		}
-		
-		if (!SetHandleInformation(pipe_stderr_rd, HANDLE_FLAG_INHERIT, 0)) {
-			free(wcmd);
-			subprocess_clean_pipe(stdout);
-			CloseHandle(pipe_stderr_rd);
-			CloseHandle(pipe_stderr_wr);
-			return SUBPROCESS_OTHER;
-		}
-	}
-	
-	if (hook_stdin) {
-		if (!CreatePipe(&pipe_stdin_rd, &pipe_stdin_wr, &subprocess_windows_sa, 0)) {
-			free(wcmd);
-			subprocess_clean_pipe(stderr);
-			subprocess_clean_pipe(stdout);
-			return SUBPROCESS_MALLOC;
-		}
-		
-		if (!SetHandleInformation(pipe_stdin_wr, HANDLE_FLAG_INHERIT, 0)) {
-			free(wcmd);
-			subprocess_clean_pipe(stderr);
-			subprocess_clean_pipe(stdout);
-			CloseHandle(pipe_stdin_rd);
-			CloseHandle(pipe_stdin_wr);
-			return SUBPROCESS_OTHER;
-		}
 	}
 	
 	PROCESS_INFORMATION proc_info;
@@ -155,13 +94,6 @@ int subprocess_open(subprocess_proc_t * output, char ** cmd, int hook_stdout, in
 	proc_start.cb = sizeof(STARTUPINFO);
 	
 	proc_start.dwFlags |= STARTF_USESTDHANDLES;
-	
-	if (hook_stdout) { proc_start.hStdOutput = pipe_stdout_wr; }
-		else { proc_start.hStdOutput = GetStdHandle(STD_OUTPUT_HANDLE); }
-	if (hook_stderr) { proc_start.hStdError = pipe_stderr_wr; }
-		else { proc_start.hStdError = GetStdHandle(STD_ERROR_HANDLE); }
-	if (hook_stdin) { proc_start.hStdInput = pipe_stdin_rd; }
-		else { proc_start.hStdInput = GetStdHandle(STD_INPUT_HANDLE); }
 	
 	BOOL success = CreateProcessA(
 		NULL,                     // Application name
@@ -177,23 +109,14 @@ int subprocess_open(subprocess_proc_t * output, char ** cmd, int hook_stdout, in
 	);
 	
 	free(wcmd);
-	if (hook_stdout) { CloseHandle(pipe_stdout_wr); }
-	if (hook_stderr) { CloseHandle(pipe_stderr_wr); }
-	if (hook_stdin) { CloseHandle(pipe_stdin_rd); }
 	
 	if (!success) {
-		if (hook_stdout) { CloseHandle(pipe_stdout_rd); }
-		if (hook_stderr) { CloseHandle(pipe_stderr_rd); }
-		if (hook_stdin) { CloseHandle(pipe_stdin_wr); }
 		return SUBPROCESS_OTHER;
 	}
 	
 	output->hProcess = proc_info.hProcess;
 	output->hThread = proc_info.hThread;
 	output->pid = proc_info.dwProcessId;
-	output->stdout_handle = pipe_stdout_rd;
-	output->stderr_handle = pipe_stderr_rd;
-	output->stdin_handle = pipe_stdin_wr;
 	output->suspended = FALSE;
 	return 0;
 }
@@ -214,44 +137,6 @@ int subprocess_wait(subprocess_return_t * rtn, subprocess_proc_t * proc, subproc
 	
 	CloseHandle(proc->hProcess);
 	CloseHandle(proc->hThread);
-	if (proc->stdout_handle != NULL) { CloseHandle(proc->stdout_handle); }
-	if (proc->stderr_handle != NULL) { CloseHandle(proc->stderr_handle); }
-	if (proc->stdin_handle != NULL) { CloseHandle(proc->stdin_handle); }
-	return 0;
-}
-
-int subprocess_read_stdout(char * output, subprocess_pipesize_t size, subprocess_pipesize_t * size_out, subprocess_proc_t * proc) {
-	if (!ReadFile(proc->stdout_handle,output,size,size_out,NULL)) {
-		if (GetLastError() == ERROR_NO_DATA) { return SUBPROCESS_EOF; }
-		if (GetLastError() == ERROR_BROKEN_PIPE) { return SUBPROCESS_EOF; }
-		return SUBPROCESS_OTHER;
-	}
-	if (*size_out == 0) { return SUBPROCESS_EOF; }
-	return 0;
-}
-
-int subprocess_read_stderr(char * output, subprocess_pipesize_t size, subprocess_pipesize_t * size_out, subprocess_proc_t * proc) {
-	if (!ReadFile(proc->stderr_handle,output,size,size_out,NULL)) {
-		if (GetLastError() == ERROR_NO_DATA) { return SUBPROCESS_EOF; }
-		if (GetLastError() == ERROR_BROKEN_PIPE) { return SUBPROCESS_EOF; }
-		return SUBPROCESS_OTHER;
-	}
-	if (*size_out == 0) { return SUBPROCESS_EOF; }
-	return 0;
-}
-
-int subprocess_write_stdin(char * input, subprocess_pipesize_t size, subprocess_proc_t * proc) {
-	subprocess_pipesize_t size_out;
-	if (!WriteFile(proc->stdin_handle,input,size,&size_out,NULL)) {
-		if (GetLastError() == ERROR_NO_DATA) { return SUBPROCESS_EOF; }
-		if (GetLastError() == ERROR_BROKEN_PIPE) { return SUBPROCESS_EOF; }
-		return SUBPROCESS_OTHER;
-	}
-	
-	if (size_out < size) {
-		return SUBPROCESS_EOF;
-	}
-	
 	return 0;
 }
 

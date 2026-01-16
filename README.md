@@ -33,10 +33,7 @@ Initializes the library. Only call once.
 ```c
 int subprocess_open(
 	subprocess_proc_t * output,
-	char ** cmd,
-	int hook_stdout,
-	int hook_stderr,
-	int hook_stdin
+	char ** cmd
 );
 ```
 
@@ -49,8 +46,6 @@ char * cmd[] = {"sh","-c","echo hello world",NULL}
 ```
 
 This would execute the equivalent of `sh -c "echo hello world"`.
-
-`hook_std*` are booleans (0 or 1), which decide whether stdout, stderr and stdin should be made interactable. Setting each to 1 allows you to call the corresponding `subprocess_read_std*` and `subprocess_write_stdin` functions, to interact with the process' input/output.
 
 ---
 
@@ -67,46 +62,6 @@ Wait for `proc` to close, and put the resulting status code into `rtn`. Cleans u
 `max_wait` defines how long to wait for the process to close. Set to `0` for infinite.
 
 If `max_wait` is not `0`, this may return `SUBPROCESS_EOF` on timeout, in which case the object's data has **not** been cleaned, and you should call this function again at some later point, until you've succeeded waiting.
-
----
-
-```c
-int subprocess_read_stdout(
-	char * output,
-	subprocess_pipesize_t size,
-	subprocess_pipesize_t * size_out,
-	subprocess_proc_t * proc
-);
-```
-
-```c
-int subprocess_read_stderr(
-	char * output,
-	subprocess_pipesize_t size,
-	subprocess_pipesize_t * size_out,
-	subprocess_proc_t * proc
-);
-```
-
-Read from `proc`'s stdout/stderr. Note, this only works if `hook_stdout` and/or `hook_stderr` were set to `1`.
-
-A maximum of `size` bytes is put into `output`. The number of bytes returned is put into `size_out`.
-
-May return `SUBPROCESS_EOF`, if the pipe has closed (program is done printing). More data may have still been returned when this happens. You should not read from this pipe again after this.
-
----
-
-```c
-int subprocess_write_stdin(
-	char * input,
-	subprocess_pipesize_t size,
-	subprocess_proc_t * proc
-);
-```
-
-Write `size` bytes of `input` into `proc`'s stdin. Note, this only works if `hook_stdin` was set to `1`.
-
-May return `SUBPROCESS_EOF`, if the pipe has closed (program no longer accepts data). You should not write to this pipe again after this.
 
 ---
 
