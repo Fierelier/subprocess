@@ -62,7 +62,7 @@ int subprocess_pipe_create(
 
 Create a stdio pipe. You can use it to make the input/output accessible when creating a process with `subprocess_open`.
 
-It is important that you use a pipe for only one purpose. Only use the created pipe for ONE of proc_stdout, proc_stderr or proc_stdin, and only use it for ONE process.
+It is important that you use a pipe for only one purpose at once. Only use the created pipe for ONE of proc_stdout, proc_stderr or proc_stdin, and only use it for ONE process.
 
 You may reuse the pipe, when the process you used it for has closed (use `subprocess_wait`). The pipe exists in memory until you free it with `subprocess_pipe_free`.
 
