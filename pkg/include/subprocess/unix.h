@@ -14,3 +14,7 @@ typedef useconds_t subprocess_time_t;
 typedef struct subprocess_proc_t {
 	pid_t pid;
 } subprocess_proc_t;
+
+typedef struct subprocess_pipe_t {
+	int pipe[2];
+} subprocess_pipe_t;

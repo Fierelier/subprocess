@@ -33,7 +33,10 @@ Initializes the library. Only call once.
 ```c
 int subprocess_open(
 	subprocess_proc_t * output,
-	char ** cmd
+	char ** cmd,
+	subprocess_pipe_t * proc_stdout,
+	subprocess_pipe_t * proc_stderr,
+	subprocess_pipe_t * proc_stdin
 );
 ```
 
@@ -46,6 +49,32 @@ char * cmd[] = {"sh","-c","echo hello world",NULL}
 ```
 
 This would execute the equivalent of `sh -c "echo hello world"`.
+
+`proc_std*` are the pipes, either pass NULL, to leave the pipes unbound (use the parent's pipes) or pass pipes that you've created with `subprocess_pipe_create`.
+
+---
+
+```c
+int subprocess_pipe_create(
+	subprocess_pipe_t * output
+)
+```
+
+Create a stdio pipe. You can use it to make the input/output accessible when creating a process with `subprocess_open`.
+
+It is important that you use a pipe for only one purpose. Only use the created pipe for ONE of proc_stdout, proc_stderr or proc_stdin, and only use it for ONE process.
+
+You may reuse the pipe, when the process you used it for has closed (use `subprocess_wait`). The pipe exists in memory until you free it with `subprocess_pipe_free`.
+
+---
+
+```c
+int subprocess_pipe_free(
+	subprocess_pipe_t * pipe
+)
+```
+
+Free a pipe from memory. The pipe should preferably not be in use anymore (use `subprocess_wait`). Do not free a pipe that you've already freed with this function.
 
 ---
 

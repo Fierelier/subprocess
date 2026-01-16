@@ -80,7 +80,13 @@ void PrintErrorMessage(DWORD errorCode) {
 }
 */
 
-int subprocess_open(subprocess_proc_t * output, char ** cmd) {
+#define subprocess_windows_inherit(handle,st) \
+	if (!SetHandleInformation(handle,HANDLE_FLAG_INHERIT,st)) { \
+		free(wcmd); \
+		return SUBPROCESS_OTHER; \
+	} \
+
+int subprocess_open(subprocess_proc_t * output, char ** cmd, subprocess_pipe_t * proc_stdout, subprocess_pipe_t * proc_stderr, subprocess_pipe_t * proc_stdin) {
 	char * wcmd = subprocess_windows_cmdstr(cmd);
 	if (wcmd == NULL) {
 		return SUBPROCESS_MALLOC;
@@ -94,6 +100,30 @@ int subprocess_open(subprocess_proc_t * output, char ** cmd) {
 	proc_start.cb = sizeof(STARTUPINFO);
 	
 	proc_start.dwFlags |= STARTF_USESTDHANDLES;
+	
+	if (proc_stdout != NULL) {
+		subprocess_windows_inherit(proc_stdout->read,0);
+		subprocess_windows_inherit(proc_stdout->write,1);
+		proc_start.hStdOutput = proc_stdout->write;
+	} else {
+		proc_start.hStdOutput = GetStdHandle(STD_OUTPUT_HANDLE);
+	}
+	
+	if (proc_stderr != NULL) {
+		subprocess_windows_inherit(proc_stdout->read,0);
+		subprocess_windows_inherit(proc_stdout->write,1);
+		proc_start.hStdError = proc_stderr->write;
+	} else {
+		proc_start.hStdError = GetStdHandle(STD_ERROR_HANDLE);
+	}
+	
+	if (proc_stdin != NULL) {
+		subprocess_windows_inherit(proc_stdout->read,1);
+		subprocess_windows_inherit(proc_stdout->write,0);
+		proc_start.hStdInput = proc_stdin->read;
+	} else {
+		proc_start.hStdInput = GetStdHandle(STD_INPUT_HANDLE);
+	}
 	
 	BOOL success = CreateProcessA(
 		NULL,                     // Application name
@@ -207,5 +237,18 @@ int subprocess_resume(subprocess_proc_t * proc) {
 		return rtn;
 	};
 	proc->suspended = suspend;
+	return 0;
+}
+
+int subprocess_pipe_create(subprocess_pipe_t * p) {
+	if (!CreatePipe(&(p->read),&(p->write),&subprocess_windows_sa,0)) {
+		return SUBPROCESS_MALLOC;
+	}
+	return 0;
+}
+
+int subprocess_pipe_free(subprocess_pipe_t * p) {
+	CloseHandle(p->read);
+	CloseHandle(p->write);
 	return 0;
 }

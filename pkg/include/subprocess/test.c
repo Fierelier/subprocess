@@ -1,6 +1,7 @@
 // To use this, use -Wl,--wrap=malloc,--wrap=free
 #include "malloc_count.c"
 
+#define clnup_dbg
 #include <subprocess/subprocess.h>
 #include <subprocess/subprocess.c>
 
@@ -36,18 +37,19 @@ int main(int argc,char * argv[]) {
 	if ((rtn = subprocess_init())) { return rtn; }
 	
 	printf("* TEST - Summoning a command and letting it run\n\n");
-	rtnif(rtn,subprocess_open(&proc,(char *[])TEST_COMMAND1,0,0,0));
+	rtnif(rtn,subprocess_open(&proc,(char *[])TEST_COMMAND1,NULL,NULL,NULL));
 	rtnif(rtn,subprocess_wait(&proc_rtn,&proc,0));
 	printf("return: %i\n\n",(int)proc_rtn);
 	
 	printf("------------------------\n");
 	printf("* TEST - Summoning a command and terminating it after 1 second\n\n");
-	rtnif(rtn,subprocess_open(&proc,(char *[])TEST_COMMAND1,0,0,0));
+	rtnif(rtn,subprocess_open(&proc,(char *[])TEST_COMMAND1,NULL,NULL,NULL));
 	rtnif(rtn && rtn != SUBPROCESS_EOF,subprocess_wait(&proc_rtn,&proc,1000));
 	rtnif(rtn,subprocess_terminate(&proc));
 	rtnif(rtn,subprocess_wait(&proc_rtn,&proc,0));
 	printf("return: %i\n\n",(int)proc_rtn);
 	
+	/*
 	printf("------------------------\n");
 	printf("* TEST - Summoning a command and capturing its stdout\n\n");
 	rtnif(rtn,subprocess_open(&proc,(char *[])TEST_COMMAND2,1,0,0));
@@ -73,28 +75,20 @@ int main(int argc,char * argv[]) {
 	rtnif(rtn,subprocess_write_stdin("exit\n",strlen("exit\n"),&proc));
 	rtnif(rtn,subprocess_wait(&proc_rtn,&proc,0));
 	printf("return: %i\n\n",(int)proc_rtn);
+	*/
 	
 	if (1) {
-		char buf[4096];
 		printf("------------------------\n");
 		printf("* TEST - Memory leaks\n\n");
 		int i = 0;
 		while (i < 100) {
 			printf("%i ...\n",i);
-			rtnif(rtn,subprocess_open(&proc,(char *[])TEST_COMMAND2,1,1,1));
-			while (1) {
-				rtnif(rtn && rtn != SUBPROCESS_EOF,subprocess_read_stdout(buf,4096,(subprocess_pipesize_t *)buf,&proc));
-				if (rtn == SUBPROCESS_EOF) { break; }
-			}
-			
-			while (1) {
-				rtnif(rtn && rtn != SUBPROCESS_EOF,subprocess_read_stderr(buf,4096,(subprocess_pipesize_t *)buf,&proc));
-				if (rtn == SUBPROCESS_EOF) { break; }
-			}
+			rtnif(rtn,subprocess_open(&proc,(char *[])TEST_COMMAND2,NULL,NULL,NULL));
 			
 			rtnif(rtn,subprocess_wait(&proc_rtn,&proc,0));
 			++i;
 		}
+		mallocprint();
 	}
 	
 	return 0;

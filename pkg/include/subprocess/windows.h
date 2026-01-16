@@ -16,5 +16,10 @@ typedef struct subprocess_proc_t {
 	BOOL suspended;
 } subprocess_proc_t;
 
+typedef struct subprocess_pipe_t {
+	HANDLE read;
+	HANDLE write;
+} subprocess_pipe_t;
+
 char * subprocess_windows_cmdstr(char ** argv);
 int subprocess_windows_suspend(subprocess_proc_t * proc, BOOL suspend);
