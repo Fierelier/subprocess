@@ -55,22 +55,6 @@ This would execute the equivalent of `sh -c "echo hello world"`.
 ---
 
 ```c
-int subprocess_pipe_create(
-	subprocess_pipe_t * output
-)
-```
-
-Create a stdio pipe. You can use it to make the input/output accessible when creating a process with `subprocess_open`.
-
-It is important that you use a pipe for only one direction at once. Only use it for a maximum of 1 output and/or 1 input.
-
-You can, for example, reuse process 1's stdout (or stderr) as process 2's stdin or vice versa. The stdout of process 1 will go into process 2's stdin.
-
-Otherwise, do not reuse the pipe. The pipe potentially exists in memory until you free it with `subprocess_pipe_free`. You best call it after waiting for the processes that use it with `subprocess_wait`.
-
----
-
-```c
 int subprocess_wait(
 	subprocess_return_t * rtn,
 	subprocess_proc_t * proc,
@@ -83,6 +67,22 @@ Wait for `proc` to close, and put the resulting status code into `rtn`. Cleans u
 `max_wait` defines how long to wait for the process to close. Set to `0` for infinite. Set to `1` for an immediate return. `2` and up will wait N milliseconds.
 
 If `max_wait` is not `0`, this may return `SUBPROCESS_EOF` on timeout, in which case the object's data has **not** been cleaned, and you should call this function again at some later point, until you've succeeded waiting.
+
+---
+
+```c
+int subprocess_pipe_create(
+	subprocess_pipe_t * output
+)
+```
+
+Create a stdio pipe. You can use it to make the input/output accessible when creating a process with `subprocess_open`.
+
+It is important that you use a pipe for only one direction at once. Only use it for a maximum of 1 output and/or 1 input.
+
+You can, for example, reuse process 1's stdout (or stderr) as process 2's stdin or vice versa. The stdout of process 1 will go into process 2's stdin.
+
+Otherwise, do not reuse the pipe. The pipe potentially exists in memory until you free it with `subprocess_pipe_free`. You best call it after waiting for the processes that use it with `subprocess_wait`.
 
 ---
 
