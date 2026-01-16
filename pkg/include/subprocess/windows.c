@@ -81,10 +81,7 @@ void PrintErrorMessage(DWORD errorCode) {
 */
 
 #define subprocess_windows_inherit(handle,st) \
-	if (!SetHandleInformation(handle,HANDLE_FLAG_INHERIT,st)) { \
-		free(wcmd); \
-		return SUBPROCESS_OTHER; \
-	} \
+	SetHandleInformation(handle,HANDLE_FLAG_INHERIT,st)
 
 int subprocess_open(subprocess_proc_t * output, char ** cmd, subprocess_pipe_t * proc_stdout, subprocess_pipe_t * proc_stderr, subprocess_pipe_t * proc_stdin) {
 	char * wcmd = subprocess_windows_cmdstr(cmd);
