@@ -80,6 +80,7 @@ int subprocess_wait(subprocess_return_t * rtn, subprocess_proc_t * proc, subproc
 		while (elapsed < max_wait) {
 			r = waitpid(proc->pid,rtn,WNOHANG);
 			if (r != 0) { break; }
+			if (max_wait == 1) { break; }
 			if (gettimeofday(&t,NULL) != 0) { return SUBPROCESS_OTHER; }
 			usleep(SUBPROCESS_CHECK_TIME * 1000);
 			elapsed = ((t.tv_sec - start.tv_sec) * 1000) - (start.tv_usec / 1000) + (t.tv_usec / 1000);

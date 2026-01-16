@@ -123,6 +123,7 @@ int subprocess_open(subprocess_proc_t * output, char ** cmd) {
 
 int subprocess_wait(subprocess_return_t * rtn, subprocess_proc_t * proc, subprocess_time_t max_wait) {
 	if (max_wait == 0) { max_wait = INFINITE; }
+	if (max_wait == 1) { max_wait = 0; }
 	
 	DWORD waitrtn = WaitForSingleObject(proc->hProcess, max_wait);
 	if (waitrtn == WAIT_TIMEOUT) {

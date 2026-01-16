@@ -59,7 +59,7 @@ int subprocess_wait(
 
 Wait for `proc` to close, and put the resulting status code into `rtn`. Cleans up memory taken up by the object. This should **always** be called, if you intend the process to end (unless the process failed creating when you called `subprocess_open`), even if you terminate or kill the process beforehand.
 
-`max_wait` defines how long to wait for the process to close. Set to `0` for infinite.
+`max_wait` defines how long to wait for the process to close. Set to `0` for infinite. Set to `1` for an immediate return. `2` and up will wait N milliseconds.
 
 If `max_wait` is not `0`, this may return `SUBPROCESS_EOF` on timeout, in which case the object's data has **not** been cleaned, and you should call this function again at some later point, until you've succeeded waiting.
 
