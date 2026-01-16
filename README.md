@@ -1,4 +1,7 @@
-A Python-inspired cross-platform subprocess library for C99. Works on Unix and Windows (MinGW).
+A Python-inspired cross-platform subprocess library for C99.
+
+## Compatibility
+Supports Linux and Windows 95+ (MinGW). It probably also works with other UNIXes, like MacOS and *BSD.
 
 ## Inlining
 **You don't need to compile this as a library.** You can simply include `pkg/include/subprocess/subprocess.c`.
@@ -139,3 +142,4 @@ int subprocess_resume(subprocess_proc_t * proc);
 
 Suspend (pause) or resume `proc`'s execution. When paused, no CPU usage will occur.
 
+Note: If the binary is compiled for Windows versions older than Windows 2000, this is a no-op, and always just returns as if it was successful.
