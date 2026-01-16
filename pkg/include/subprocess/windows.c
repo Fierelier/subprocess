@@ -196,6 +196,7 @@ int subprocess_terminate(subprocess_proc_t * proc) {
 }
 
 int subprocess_windows_suspend(subprocess_proc_t * proc, BOOL suspend) {
+	#if WINVER >= 0x0500
 	HANDLE snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, 0);
 	if (snapshot == INVALID_HANDLE_VALUE) {
 		return SUBPROCESS_MALLOC;
@@ -224,6 +225,7 @@ int subprocess_windows_suspend(subprocess_proc_t * proc, BOOL suspend) {
 	} while (Thread32Next(snapshot, &te32));
 	
 	CloseHandle(snapshot);
+	#endif
 	return 0;
 }
 
