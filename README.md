@@ -21,7 +21,10 @@ Note: With the default prefix, you may need to run `sudo ldconfig /usr/local/lib
 Run `./make-test.sh` and then `./subprocess-test-static` and `./subprocess-test-linked`.
 
 ## Functions
-**All** (!) functions may return an error. `0` is success, `>0` means an error or a special event occured.
+**All** (!) functions may return an error. `0` is success, `>0` means an error or a special event occured:
+- `SUBPROCESS_OTHER`: Some unknown error occured.
+- `SUBPROCESS_MALLOC`: Error likely related to resource limitations.
+- `SUBPROCESS_EOF`: The end of something has been reached. Usually not an error.
 
 ---
 
