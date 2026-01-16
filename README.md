@@ -66,17 +66,7 @@ It is important that you use a pipe for only one direction at once. Only use it 
 
 You can, for example, reuse process 1's stdout (or stderr) as process 2's stdin or vice versa. The stdout of process 1 will go into process 2's stdin.
 
-You may reuse the pipe, when the processes you used it for have closed (use `subprocess_wait`). The pipe exists in memory until you free it with `subprocess_pipe_free`.
-
----
-
-```c
-int subprocess_pipe_free(
-	subprocess_pipe_t * pipe
-)
-```
-
-Free a pipe from memory. The pipe should preferably not be in use anymore (use `subprocess_wait`). Do not free a pipe that you've already freed with this function.
+Otherwise, do not reuse the pipe. The pipe potentially exists in memory until you free it with `subprocess_pipe_free`. You best call it after waiting for the processes that use it with `subprocess_wait`.
 
 ---
 
@@ -93,6 +83,41 @@ Wait for `proc` to close, and put the resulting status code into `rtn`. Cleans u
 `max_wait` defines how long to wait for the process to close. Set to `0` for infinite. Set to `1` for an immediate return. `2` and up will wait N milliseconds.
 
 If `max_wait` is not `0`, this may return `SUBPROCESS_EOF` on timeout, in which case the object's data has **not** been cleaned, and you should call this function again at some later point, until you've succeeded waiting.
+
+---
+
+```c
+int subprocess_pipe_free(
+	subprocess_pipe_t * pipe
+)
+```
+
+Free a pipe from memory. The pipe should preferably not be in use anymore (use `subprocess_wait` on the processes it's used in). It's okay to free pipes that have already been freed.
+
+---
+
+```c
+int subprocess_pipe_read(
+	subprocess_pipe_t * p,
+	subprocess_pipesize_t size,
+	subprocess_pipesize_t * size_out,
+	char * output
+)
+```
+
+Read up to `size` bytes from a pipe `p` into `output`. Puts the actual size returned into `size_out`. If it returns `SUBPROCESS_EOF`, all data has been returned. In this case, do not call read on this pipe again. If the return is `0`, more data can be read.
+
+---
+
+```c
+int subprocess_pipe_write(
+	subprocess_pipe_t * p,
+	subprocess_pipesize_t size,
+	char * input
+)
+```
+
+Write `size` bytes of `input` into pipe `p`. If it returns `SUBPROCESS_EOF`, that side of the pipe is closed and no more data can be sent. In this case, do not call write on this pipe again. If the return is `0`, more data can be read.
 
 ---
 

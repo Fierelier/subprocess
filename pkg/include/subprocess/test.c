@@ -1,7 +1,7 @@
 // To use this, use -Wl,--wrap=malloc,--wrap=free
 #include "malloc_count.c"
 
-#define clnup_dbg
+//#define clnup_dbg
 #include <subprocess/subprocess.h>
 #include <subprocess/subprocess.c>
 
@@ -49,46 +49,74 @@ int main(int argc,char * argv[]) {
 	rtnif(rtn,subprocess_wait(&proc_rtn,&proc,0));
 	printf("return: %i\n\n",(int)proc_rtn);
 	
-	/*
-	printf("------------------------\n");
-	printf("* TEST - Summoning a command and capturing its stdout\n\n");
-	rtnif(rtn,subprocess_open(&proc,(char *[])TEST_COMMAND2,1,0,0));
-	char * data = malloc(32768);
-	if (data == NULL) { return 1; };
-	subprocess_pipesize_t read = 0;
-	subprocess_pipesize_t s;
-	while (1) {
-		rtnif(rtn && rtn != SUBPROCESS_EOF,subprocess_read_stdout(data + read,1024,&s,&proc));
-		read += s;
-		if (rtn == SUBPROCESS_EOF) { break; }
+	
+	{
+		printf("------------------------\n");
+		printf("* TEST - Summoning a command and capturing its stdout\n\n");
+		subprocess_pipe_t p;
+		rtnif(rtn,subprocess_pipe_create(&p));
+		rtnif(rtn,subprocess_open(&proc,(char *[])TEST_COMMAND2,&p,NULL,NULL));
+		char * data = malloc(32768);
+		if (data == NULL) { return 1; };
+		subprocess_pipesize_t read = 0;
+		subprocess_pipesize_t s;
+		while (1) {
+			rtnif(rtn && rtn != SUBPROCESS_EOF,subprocess_pipe_read(&p,1024,&s,data + read));
+			read += s;
+			if (rtn == SUBPROCESS_EOF) { break; }
+		}
+		rtnif(rtn,subprocess_wait(&proc_rtn,&proc,0));
+		subprocess_pipe_free(&p);
+		printf("Captured data:\n%s",data);
+		free(data);
+		printf("return: %i\n\n",(int)proc_rtn);
+		
+		printf("------------------------\n");
+		printf("* TEST - Summoning a command and printing into stdin\n\n");
+		rtnif(rtn,subprocess_pipe_create(&p));
+		rtnif(rtn,subprocess_open(&proc,(char *[])TEST_COMMAND3,NULL,NULL,&p));
+		SLEEP(1000);
+		printf("echo hello world\n");
+		rtnif(rtn,subprocess_pipe_write(&p,strlen("echo hello world\n"),"echo hello world\n"));
+		SLEEP(1000);
+		printf("exit\n");
+		rtnif(rtn,subprocess_pipe_write(&p,strlen("exit\n"),"exit\n"));
+		rtnif(rtn,subprocess_wait(&proc_rtn,&proc,0));
+		subprocess_pipe_free(&p);
+		printf("return: %i\n\n",(int)proc_rtn);
 	}
-	rtnif(rtn,subprocess_wait(&proc_rtn,&proc,0));
-	printf("Captured data:\n%s",data);
-	free(data);
-	printf("return: %i\n\n",(int)proc_rtn);
 	
-	printf("------------------------\n");
-	printf("* TEST - Summoning a command and printing into stdin\n\n");
-	rtnif(rtn,subprocess_open(&proc,(char *[])TEST_COMMAND3,0,0,1));
-	rtnif(rtn,subprocess_write_stdin("echo hello world\n",strlen("echo hello world\n"),&proc));
-	SLEEP(1000);
-	rtnif(rtn,subprocess_write_stdin("exit\n",strlen("exit\n"),&proc));
-	rtnif(rtn,subprocess_wait(&proc_rtn,&proc,0));
-	printf("return: %i\n\n",(int)proc_rtn);
-	*/
-	
-	if (1) {
+	{
 		printf("------------------------\n");
 		printf("* TEST - Memory leaks\n\n");
+		char buf[4096];
 		int i = 0;
+		subprocess_pipe_t pipe_stdout;
+		subprocess_pipe_t pipe_stderr;
 		while (i < 100) {
-			printf("%i ...\n",i);
-			rtnif(rtn,subprocess_open(&proc,(char *[])TEST_COMMAND2,NULL,NULL,NULL));
+			printf(".");
+			fflush(stdout);
+			rtnif(rtn,subprocess_pipe_create(&pipe_stdout));
+			rtnif(rtn,subprocess_pipe_create(&pipe_stderr));
+			rtnif(rtn,subprocess_open(&proc,(char *[])TEST_COMMAND2,&pipe_stdout,&pipe_stderr,NULL));
+			
+			// Hide output of commands
+			while (1) {
+				rtnif(rtn && rtn != SUBPROCESS_EOF,subprocess_pipe_read(&pipe_stdout,4096,(subprocess_pipesize_t *)buf,buf));
+				if (rtn == SUBPROCESS_EOF) { break; }
+			}
+			
+			while (1) {
+				rtnif(rtn && rtn != SUBPROCESS_EOF,subprocess_pipe_read(&pipe_stderr,4096,(subprocess_pipesize_t *)buf,buf));
+				if (rtn == SUBPROCESS_EOF) { break; }
+			}
 			
 			rtnif(rtn,subprocess_wait(&proc_rtn,&proc,0));
+			rtnif(rtn,subprocess_pipe_free(&pipe_stdout));
+			rtnif(rtn,subprocess_pipe_free(&pipe_stderr));
 			++i;
 		}
-		mallocprint();
+		printf("\n");
 	}
 	
 	return 0;

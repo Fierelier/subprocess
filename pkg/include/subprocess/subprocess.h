@@ -19,7 +19,9 @@ int subprocess_terminate(subprocess_proc_t * proc);
 int subprocess_kill(subprocess_proc_t * proc);
 int subprocess_suspend(subprocess_proc_t * proc);
 int subprocess_resume(subprocess_proc_t * proc);
-int subprocess_pipe_create(subprocess_pipe_t * pipe);
-int subprocess_pipe_free(subprocess_pipe_t * pipe);
+int subprocess_pipe_create(subprocess_pipe_t * p);
+int subprocess_pipe_free(subprocess_pipe_t * p);
+int subprocess_pipe_read(subprocess_pipe_t * p, subprocess_pipesize_t size, subprocess_pipesize_t * size_out, char * output);
+int subprocess_pipe_write(subprocess_pipe_t * p, subprocess_pipesize_t size, char * input);
 
 #endif

@@ -73,11 +73,18 @@ int subprocess_open(subprocess_proc_t * output, char ** cmd, subprocess_pipe_t *
 		execvp(cmd[0],cmd);
 		
 		// This should not run
-		if (proc_stdout != NULL) { close(proc_stdout->pipe[1]); }
-		if (proc_stderr != NULL) { close(proc_stderr->pipe[1]); }
-		if (proc_stdin != NULL) { close(proc_stdin->pipe[0]); }
 		subprocess_pipe_err(SUBPROCESS_OTHER);
 	} else { // Parent
+		if (proc_stdout != NULL) {
+			clnup_cvr(proc_stdout->pipe[1],-1,close(proc_stdout->pipe[1]));
+		}
+		if (proc_stderr != NULL) {
+			clnup_cvr(proc_stderr->pipe[1],-1,close(proc_stderr->pipe[1]));
+		}
+		if (proc_stdin != NULL) {
+			clnup_cvr(proc_stdin->pipe[0],-1,close(proc_stdin->pipe[0]));
+		}
+		
 		clnup_cvr(pipe_fork[1],-1,close(pipe_fork[1]));
 		
 		char rtn;
@@ -157,7 +164,34 @@ int subprocess_pipe_create(subprocess_pipe_t * p) {
 }
 
 int subprocess_pipe_free(subprocess_pipe_t * p) {
-	close(p->pipe[0]);
-	close(p->pipe[1]);
+	clnup_cvr(p->pipe[0],-1,close(p->pipe[0]));
+	clnup_cvr(p->pipe[1],-1,close(p->pipe[1]));
+	return 0;
+}
+
+int subprocess_pipe_read(subprocess_pipe_t * p, subprocess_pipesize_t size, subprocess_pipesize_t * size_out, char * output) {
+	*size_out = read(p->pipe[0],output,size);
+	if (*size_out == -1) {
+		*size_out = 0;
+		return SUBPROCESS_OTHER;
+	}
+	
+	if (*size_out < size) {
+		return SUBPROCESS_EOF;
+	}
+	
+	return 0;
+}
+
+int subprocess_pipe_write(subprocess_pipe_t * p, subprocess_pipesize_t size, char * input) {
+	subprocess_pipesize_t size_out = write(p->pipe[1],input,size);
+	if (size_out == -1) {
+		return SUBPROCESS_OTHER;
+	}
+	
+	if (size_out < size) {
+		return SUBPROCESS_EOF;
+	}
+	
 	return 0;
 }

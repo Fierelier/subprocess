@@ -110,16 +110,16 @@ int subprocess_open(subprocess_proc_t * output, char ** cmd, subprocess_pipe_t *
 	}
 	
 	if (proc_stderr != NULL) {
-		subprocess_windows_inherit(proc_stdout->read,0);
-		subprocess_windows_inherit(proc_stdout->write,1);
+		subprocess_windows_inherit(proc_stderr->read,0);
+		subprocess_windows_inherit(proc_stderr->write,1);
 		proc_start.hStdError = proc_stderr->write;
 	} else {
 		proc_start.hStdError = GetStdHandle(STD_ERROR_HANDLE);
 	}
 	
 	if (proc_stdin != NULL) {
-		subprocess_windows_inherit(proc_stdout->read,1);
-		subprocess_windows_inherit(proc_stdout->write,0);
+		subprocess_windows_inherit(proc_stdin->read,1);
+		subprocess_windows_inherit(proc_stdin->write,0);
 		proc_start.hStdInput = proc_stdin->read;
 	} else {
 		proc_start.hStdInput = GetStdHandle(STD_INPUT_HANDLE);
@@ -137,6 +137,18 @@ int subprocess_open(subprocess_proc_t * output, char ** cmd, subprocess_pipe_t *
 		&proc_start,              // STARTUPINFO
 		&proc_info                // PROCESS_INFORMATION
 	);
+	
+	if (proc_stdout != NULL) {
+		clnup_cvr(proc_stdout->write,NULL,CloseHandle(proc_stdout->write));
+	}
+	
+	if (proc_stderr != NULL) {
+		clnup_cvr(proc_stderr->write,NULL,CloseHandle(proc_stderr->write));
+	}
+	
+	if (proc_stdin != NULL) {
+		clnup_cvr(proc_stdin->read,NULL,CloseHandle(proc_stdin->read));
+	}
 	
 	free(wcmd);
 	
@@ -248,7 +260,32 @@ int subprocess_pipe_create(subprocess_pipe_t * p) {
 }
 
 int subprocess_pipe_free(subprocess_pipe_t * p) {
-	CloseHandle(p->read);
-	CloseHandle(p->write);
+	clnup_cvr(p->read,NULL,CloseHandle(p->read));
+	clnup_cvr(p->write,NULL,CloseHandle(p->write));
+	return 0;
+}
+
+int subprocess_pipe_read(subprocess_pipe_t * p, subprocess_pipesize_t size, subprocess_pipesize_t * size_out, char * output) {
+	if (!ReadFile(p->read,output,size,size_out,NULL)) {
+		if (GetLastError() == ERROR_NO_DATA) { return SUBPROCESS_EOF; }
+		if (GetLastError() == ERROR_BROKEN_PIPE) { return SUBPROCESS_EOF; }
+		return SUBPROCESS_OTHER;
+	}
+	if (*size_out == 0) { return SUBPROCESS_EOF; }
+	return 0;
+}
+
+int subprocess_pipe_write(subprocess_pipe_t * p, subprocess_pipesize_t size, char * input) {
+	subprocess_pipesize_t size_out;
+	if (!WriteFile(p->write,input,size,&size_out,NULL)) {
+		if (GetLastError() == ERROR_NO_DATA) { return SUBPROCESS_EOF; }
+		if (GetLastError() == ERROR_BROKEN_PIPE) { return SUBPROCESS_EOF; }
+		return SUBPROCESS_OTHER;
+	}
+	
+	if (size_out < size) {
+		return SUBPROCESS_EOF;
+	}
+	
 	return 0;
 }
