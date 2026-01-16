@@ -28,6 +28,24 @@
 		return rtn; \
 	}
 
+#ifdef _WIN32
+	int get_open_descriptors() {
+		DWORD count;
+		GetProcessHandleCount(GetCurrentProcess(),&count);
+		return (int)count;
+	}
+#else
+	#include <dirent.h>
+	int get_open_descriptors() {
+		int count = 0;
+		DIR *dir = opendir("/proc/self/fd");
+		if (!dir) return -1;
+		while (readdir(dir)) { count++; }
+		closedir(dir);
+		return count - 2; // subtract "." and ".."
+	}
+#endif
+
 #include <stdlib.h>
 #include <string.h>
 int main(int argc,char * argv[]) {
@@ -91,6 +109,7 @@ int main(int argc,char * argv[]) {
 		printf("* TEST - Memory leaks\n\n");
 		char buf[4096];
 		int i = 0;
+		int before = get_open_descriptors();
 		subprocess_pipe_t pipe_stdout;
 		subprocess_pipe_t pipe_stderr;
 		while (i < 100) {
@@ -117,6 +136,7 @@ int main(int argc,char * argv[]) {
 			++i;
 		}
 		printf("\n");
+		printf("Additional (file) descriptors: %d\n",get_open_descriptors() - before);
 	}
 	
 	return 0;
