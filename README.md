@@ -87,16 +87,6 @@ Otherwise, do not reuse the pipe. The pipe potentially exists in memory until yo
 ---
 
 ```c
-int subprocess_pipe_free(
-	subprocess_pipe_t * pipe
-)
-```
-
-Free a pipe from memory. The pipe should preferably not be in use anymore (use `subprocess_wait` on the processes it's used in). It's okay to free pipes that have already been freed.
-
----
-
-```c
 int subprocess_pipe_read(
 	subprocess_pipe_t * p,
 	subprocess_pipesize_t size,
@@ -118,6 +108,16 @@ int subprocess_pipe_write(
 ```
 
 Write `size` bytes of `input` into pipe `p`. If it returns `SUBPROCESS_EOF`, that side of the pipe is closed and no more data can be sent. In this case, do not call write on this pipe again. If the return is `0`, more data can be read.
+
+---
+
+```c
+int subprocess_pipe_free(
+	subprocess_pipe_t * pipe
+)
+```
+
+Free a pipe from memory. The pipe should preferably not be in use anymore (use `subprocess_wait` on the processes it's used in). It's okay to free pipes that have already been freed.
 
 ---
 
