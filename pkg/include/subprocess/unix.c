@@ -13,7 +13,7 @@ int subprocess_init(void) {
 
 int subprocess_open(subprocess_proc_t * output, char ** cmd, subprocess_pipe_t * proc_stdout, subprocess_pipe_t * proc_stderr, subprocess_pipe_t * proc_stdin) {
 	clnup_srt(cleanup);
-		clnup_var(cleanup, pid_t,pid,-1, kill(pid,SIGKILL); waitpid(pid,NULL,0));
+		//clnup_var(cleanup, pid_t,pid,-1, kill(pid,SIGKILL); waitpid(pid,NULL,0));
 		clnup_tbl(cleanup, int,pipe_fork[2]);
 		clnup_tbs(cleanup, pipe_fork[0],-1, close(pipe_fork[0]));
 		clnup_tbs(cleanup, pipe_fork[1],-1, close(pipe_fork[1]));
