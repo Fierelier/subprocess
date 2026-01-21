@@ -19,6 +19,8 @@ int subprocess_open(subprocess_proc_t * output, char ** cmd, subprocess_pipe_t *
 		clnup_tbs(cleanup, pipe_fork[1],-1, close(pipe_fork[1]));
 	clnup_end(cleanup, SUBPROCESS_OTHER);
 	
+	pid_t pid;
+	
 	if (pipe((int *)pipe_fork) == -1) {
 		clnup_cll(cleanup);
 		return SUBPROCESS_MALLOC;
