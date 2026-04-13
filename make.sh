@@ -8,6 +8,6 @@ fi
 
 mkdir -p pkg/lib
 
-"$CC" $CFLAGS -std=gnu99 -Wall -Werror -pedantic -c -fPIC pkg/include/subprocess/subprocess.c $LDFLAGS -o subprocess.o
-"$CC" $CFLAGS -std=gnu99 -Wall -Werror -pedantic -shared subprocess.o $LDFLAGS -o pkg/lib/libsubprocess.so
+$CC -c -std=gnu99 -Wall -Werror -pedantic -fPIC $CFLAGS "pkg/include/subprocess/subprocess.c" $LDFLAGS -o "subprocess.o"
+$CC -std=gnu99 -Wall -Werror -pedantic -shared $CFLAGS "subprocess.o" $LDFLAGS -o "pkg/lib/libsubprocess.so"
 rm subprocess.o
