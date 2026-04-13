@@ -6,35 +6,35 @@ int subprocess_init(void) {
 	{ \
 		char _pipeout = (char)n; \
 		write(pipe_fork[1],&_pipeout,1); \
-		clnup_cll(cleanup); \
+		clnup_call(cleanup); \
 		exit(n); \
 		return n; \
 	}
 
 int subprocess_open(subprocess_proc_t * output, char ** cmd, subprocess_pipe_t * proc_stdout, subprocess_pipe_t * proc_stderr, subprocess_pipe_t * proc_stdin) {
-	clnup_srt(cleanup);
+	clnup_start(cleanup);
 		//clnup_var(cleanup, pid_t,pid,-1, kill(pid,SIGKILL); waitpid(pid,NULL,0));
-		clnup_tbl(cleanup, int,pipe_fork[2]);
-		clnup_tbs(cleanup, pipe_fork[0],-1, close(pipe_fork[0]));
-		clnup_tbs(cleanup, pipe_fork[1],-1, close(pipe_fork[1]));
+		clnup_table(cleanup, int,pipe_fork[2]);
+		clnup_tableset(cleanup, pipe_fork[0],-1, close(pipe_fork[0]));
+		clnup_tableset(cleanup, pipe_fork[1],-1, close(pipe_fork[1]));
 	clnup_end(cleanup, SUBPROCESS_OTHER);
 	
 	pid_t pid;
 	
 	if (pipe((int *)pipe_fork) == -1) {
-		clnup_cll(cleanup);
+		clnup_call(cleanup);
 		return SUBPROCESS_MALLOC;
 	}
 	
 	pid = fork();
 	if (pid == -1) {
-		clnup_cll(cleanup);
+		clnup_call(cleanup);
 		return SUBPROCESS_MALLOC;
 	}
 	
 	int drtn;
 	if (pid == 0) { // Child
-		clnup_cvr(pipe_fork[0],-1,close(pipe_fork[0]));
+		clnup_checkvar(pipe_fork[0],-1,close(pipe_fork[0]));
 		
 		int flags = fcntl(pipe_fork[1], F_GETFD);
 		if (flags == -1) {
@@ -78,26 +78,26 @@ int subprocess_open(subprocess_proc_t * output, char ** cmd, subprocess_pipe_t *
 		subprocess_pipe_err(SUBPROCESS_OTHER);
 	} else { // Parent
 		if (proc_stdout != NULL) {
-			clnup_cvr(proc_stdout->pipe[1],-1,close(proc_stdout->pipe[1]));
+			clnup_checkvar(proc_stdout->pipe[1],-1,close(proc_stdout->pipe[1]));
 		}
 		if (proc_stderr != NULL) {
-			clnup_cvr(proc_stderr->pipe[1],-1,close(proc_stderr->pipe[1]));
+			clnup_checkvar(proc_stderr->pipe[1],-1,close(proc_stderr->pipe[1]));
 		}
 		if (proc_stdin != NULL) {
-			clnup_cvr(proc_stdin->pipe[0],-1,close(proc_stdin->pipe[0]));
+			clnup_checkvar(proc_stdin->pipe[0],-1,close(proc_stdin->pipe[0]));
 		}
 		
-		clnup_cvr(pipe_fork[1],-1,close(pipe_fork[1]));
+		clnup_checkvar(pipe_fork[1],-1,close(pipe_fork[1]));
 		
 		char rtn;
 		ssize_t n = read(pipe_fork[0], &rtn, 1);
-		clnup_cvr(pipe_fork[0],-1,close(pipe_fork[0]));
+		clnup_checkvar(pipe_fork[0],-1,close(pipe_fork[0]));
 		
 		// Any error state
 		if ((n == -1) || (n == 1)) {
 			waitpid(pid,NULL,0);
 			pid = -1;
-			clnup_cll(cleanup);
+			clnup_call(cleanup);
 			
 			// Proper error return
 			if (n == 1) { return (int)rtn; }
@@ -166,8 +166,8 @@ int subprocess_pipe_create(subprocess_pipe_t * p) {
 }
 
 int subprocess_pipe_free(subprocess_pipe_t * p) {
-	clnup_cvr(p->pipe[0],-1,close(p->pipe[0]));
-	clnup_cvr(p->pipe[1],-1,close(p->pipe[1]));
+	clnup_checkvar(p->pipe[0],-1,close(p->pipe[0]));
+	clnup_checkvar(p->pipe[1],-1,close(p->pipe[1]));
 	return 0;
 }
 

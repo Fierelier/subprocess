@@ -1,7 +1,7 @@
 // To use this, use -Wl,--wrap=malloc,--wrap=free
 #include "malloc_count.c"
 
-//#define clnup_dbg
+//#define clnup_debug
 #include <subprocess/subprocess.h>
 #include <subprocess/subprocess.c>
 

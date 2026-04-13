@@ -136,15 +136,15 @@ int subprocess_open(subprocess_proc_t * output, char ** cmd, subprocess_pipe_t *
 	);
 	
 	if (proc_stdout != NULL) {
-		clnup_cvr(proc_stdout->write,NULL,CloseHandle(proc_stdout->write));
+		clnup_checkvar(proc_stdout->write,NULL,CloseHandle(proc_stdout->write));
 	}
 	
 	if (proc_stderr != NULL) {
-		clnup_cvr(proc_stderr->write,NULL,CloseHandle(proc_stderr->write));
+		clnup_checkvar(proc_stderr->write,NULL,CloseHandle(proc_stderr->write));
 	}
 	
 	if (proc_stdin != NULL) {
-		clnup_cvr(proc_stdin->read,NULL,CloseHandle(proc_stdin->read));
+		clnup_checkvar(proc_stdin->read,NULL,CloseHandle(proc_stdin->read));
 	}
 	
 	free(wcmd);
@@ -259,8 +259,8 @@ int subprocess_pipe_create(subprocess_pipe_t * p) {
 }
 
 int subprocess_pipe_free(subprocess_pipe_t * p) {
-	clnup_cvr(p->read,NULL,CloseHandle(p->read));
-	clnup_cvr(p->write,NULL,CloseHandle(p->write));
+	clnup_checkvar(p->read,NULL,CloseHandle(p->read));
+	clnup_checkvar(p->write,NULL,CloseHandle(p->write));
 	return 0;
 }
 
