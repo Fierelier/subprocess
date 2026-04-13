@@ -113,7 +113,7 @@ int subprocess_pipe_write(
 )
 ```
 
-Write `size` bytes of `input` into pipe `p`. If it returns `SUBPROCESS_EOF`, that side of the pipe is closed and no more data can be sent. In this case, do not call write on this pipe again. If the return is `0`, more data can be read.
+Write `size` bytes of `input` into pipe `p`. If it returns `SUBPROCESS_EOF`, that side of the pipe is closed and no more data can be sent. In this case, do not call write on this pipe again. If the return is `0`, more data can be written.
 
 ---
 
