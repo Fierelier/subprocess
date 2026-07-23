@@ -178,7 +178,7 @@ int subprocess_pipe_read(subprocess_pipe_t * p, subprocess_pipesize_t size, subp
 		return SUBPROCESS_OTHER;
 	}
 	
-	if (*size_out < size) {
+	if (*size_out == 0) {
 		return SUBPROCESS_EOF;
 	}
 	
