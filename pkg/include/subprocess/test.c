@@ -6,16 +6,16 @@
 #include <subprocess/subprocess.c>
 
 #ifndef _WIN32
-	#define TEST_COMMAND1 {"ping","127.0.0.1","-c","5","-i","1",NULL}
-	#define TEST_COMMAND2 {"ls",NULL}
-	#define TEST_COMMAND3 {"sh",NULL}
+	#define TEST_COMMAND1 {TEXT("ping"),TEXT("127.0.0.1"),TEXT("-c"),TEXT("5"),TEXT("-i"),TEXT("1"),NULL}
+	#define TEST_COMMAND2 {TEXT("ls"),NULL}
+	#define TEST_COMMAND3 {TEXT("sh"),NULL}
 	
 	#include <unistd.h>
 	#define SLEEP(ms) usleep(ms * 1000);
 #else
-	#define TEST_COMMAND1 {"ping","127.0.0.1","-n","5",NULL}
-	#define TEST_COMMAND2 {"cmd","/c","dir",NULL}
-	#define TEST_COMMAND3 {"cmd",NULL}
+	#define TEST_COMMAND1 {TEXT("ping"),TEXT("127.0.0.1"),TEXT("-n"),TEXT("5"),NULL}
+	#define TEST_COMMAND2 {TEXT("cmd"),TEXT("/c"),TEXT("dir"),NULL}
+	#define TEST_COMMAND3 {TEXT("cmd"),NULL}
 	
 	#include <windows.h>
 	#define SLEEP(ms) Sleep(ms);
@@ -55,13 +55,13 @@ int main(int argc,char * argv[]) {
 	if ((rtn = subprocess_init())) { return rtn; }
 	
 	printf("* TEST - Summoning a command and letting it run\n\n");
-	rtnif(rtn,subprocess_open(&proc,(char *[])TEST_COMMAND1,NULL,NULL,NULL));
+	rtnif(rtn,subprocess_open(&proc,(subprocess_char_t *[])TEST_COMMAND1,NULL,NULL,NULL));
 	rtnif(rtn,subprocess_wait(&proc_rtn,&proc,0));
 	printf("return: %i\n\n",(int)proc_rtn);
 	
 	printf("------------------------\n");
 	printf("* TEST - Summoning a command and terminating it after 1 second\n\n");
-	rtnif(rtn,subprocess_open(&proc,(char *[])TEST_COMMAND1,NULL,NULL,NULL));
+	rtnif(rtn,subprocess_open(&proc,(subprocess_char_t *[])TEST_COMMAND1,NULL,NULL,NULL));
 	rtnif(rtn && rtn != SUBPROCESS_EOF,subprocess_wait(&proc_rtn,&proc,1000));
 	rtnif(rtn,subprocess_terminate(&proc));
 	rtnif(rtn,subprocess_wait(&proc_rtn,&proc,0));
@@ -73,7 +73,7 @@ int main(int argc,char * argv[]) {
 		printf("* TEST - Summoning a command and capturing its stdout\n\n");
 		subprocess_pipe_t p;
 		rtnif(rtn,subprocess_pipe_create(&p));
-		rtnif(rtn,subprocess_open(&proc,(char *[])TEST_COMMAND2,&p,NULL,NULL));
+		rtnif(rtn,subprocess_open(&proc,(subprocess_char_t *[])TEST_COMMAND2,&p,NULL,NULL));
 		char * data = malloc(32768);
 		if (data == NULL) { return 1; };
 		subprocess_pipesize_t read = 0;
@@ -92,7 +92,7 @@ int main(int argc,char * argv[]) {
 		printf("------------------------\n");
 		printf("* TEST - Summoning a command and printing into stdin\n\n");
 		rtnif(rtn,subprocess_pipe_create(&p));
-		rtnif(rtn,subprocess_open(&proc,(char *[])TEST_COMMAND3,NULL,NULL,&p));
+		rtnif(rtn,subprocess_open(&proc,(subprocess_char_t *[])TEST_COMMAND3,NULL,NULL,&p));
 		SLEEP(1000);
 		printf("echo hello world\n");
 		rtnif(rtn,subprocess_pipe_write(&p,strlen("echo hello world\n"),"echo hello world\n"));
@@ -117,7 +117,7 @@ int main(int argc,char * argv[]) {
 			fflush(stdout);
 			rtnif(rtn,subprocess_pipe_create(&pipe_stdout));
 			rtnif(rtn,subprocess_pipe_create(&pipe_stderr));
-			rtnif(rtn,subprocess_open(&proc,(char *[])TEST_COMMAND2,&pipe_stdout,&pipe_stderr,NULL));
+			rtnif(rtn,subprocess_open(&proc,(subprocess_char_t *[])TEST_COMMAND2,&pipe_stdout,&pipe_stderr,NULL));
 			
 			// Hide output of commands
 			while (1) {

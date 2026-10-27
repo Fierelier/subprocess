@@ -8,10 +8,14 @@
 		return rtn; \
 	}
 
+#ifndef T
+	#define T TEXT
+#endif
+
 #ifndef _WIN32
-	#define PATHSEP "/"
+	#define PATHSEP T("/")
 #else
-	#define PATHSEP "\\"
+	#define PATHSEP T("\\")
 #endif
 
 #include <stdlib.h>
@@ -26,14 +30,14 @@ int main(int argc,char * argv[]) {
 	subprocess_pipe_t pipe_type;
 	rtnif(rtn,subprocess_pipe_create(&pipe_type));
 	rtnif(rtn,subprocess_open(&proc_type,
-		(char *[]){"command.com","/c","type","pkg"PATHSEP"include"PATHSEP"subprocess"PATHSEP"test-w95.c",NULL},
+		(subprocess_char_t *[]){T("command.com"),T("/c"),T("type"),T("pkg") PATHSEP T("include")PATHSEP T("subprocess") PATHSEP T("test-w95.c"),NULL},
 	&pipe_type,NULL,NULL));
 	
 	// more
 	subprocess_proc_t proc_more;
 	subprocess_return_t proc_more_rtn;
 	rtnif(rtn,subprocess_open(&proc_more,
-		(char *[]){"command.com","/c","more",NULL},
+		(subprocess_char_t *[]){T("command.com"),T("/c"),T("more"),NULL},
 	NULL,NULL,&pipe_type));
 	
 	// wait for processes to exit

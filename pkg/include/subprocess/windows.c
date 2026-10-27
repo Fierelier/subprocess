@@ -5,22 +5,22 @@ int subprocess_init(void) {
 	return 0;
 }
 
-char * subprocess_windows_cmdstr(char ** argv) {
+subprocess_char_t * subprocess_windows_cmdstr(subprocess_char_t ** argv) {
 	// Figure out how long the command string has to be
 	size_t commandLength = 0;
 	size_t i;
 	for (i = 0; argv[i] != NULL; i++) {
 		// Each argument will have a following space
-		commandLength += strlen(argv[i]) + 1;
+		commandLength += _tcslen(argv[i]) + 1;
 		
 		// Argument with spaces will need quotes
 		// Not just quoting every single argument may seem overkill, but it's actually required, for some programs do not use argv
-		int quote = (strchr(argv[i],' ') != NULL);
+		int quote = (_tcschr(argv[i],TEXT(' ')) != NULL);
 		if (quote) {
 			commandLength += 2;
 			size_t si;
 			for (si = 0; argv[i][si] != 0; si++) {
-				if (argv[i][si] == '"') {
+				if (argv[i][si] == TEXT('"')) {
 					// Each " will have to be escaped by a \ - add 1
 					commandLength++;
 				}
@@ -31,7 +31,7 @@ char * subprocess_windows_cmdstr(char ** argv) {
 	commandLength += 1;
 	
 	// Allocate memory
-	char * command = malloc(commandLength);
+	subprocess_char_t * command = malloc(commandLength * sizeof(subprocess_char_t));
 	if (command == NULL) { return NULL; }
 	
 	command[0] = 0;
@@ -40,18 +40,18 @@ char * subprocess_windows_cmdstr(char ** argv) {
 	
 	// Add spaces and quotes where necessary
 	for (i = 0; argv[i] != NULL; i++) {
-		int quote = (strchr(argv[i],' ') != NULL);
-		if (quote) { strcat(command,"\""); }
+		int quote = (_tcschr(argv[i],TEXT(' ')) != NULL);
+		if (quote) { _tcscat(command,TEXT("\"")); }
 		size_t si;
 		for (si = 0; argv[i][si] != 0; si++) {
-			if (quote && (argv[i][si] == '"')) {
-				strcat(command,"\\");
+			if (quote && (argv[i][si] == TEXT('"'))) {
+				_tcscat(command,TEXT("\\"));
 			}
-			strncat(command,argv[i] + si,1);
+			_tcsncat(command,argv[i] + si,1);
 		}
 			
-		if (quote) { strcat(command,"\""); }
-		strcat(command," ");
+		if (quote) { _tcscat(command,TEXT("\"")); }
+		_tcscat(command,TEXT(" "));
 	}
 	
 	// Get "rid" of the trailing space
@@ -83,8 +83,8 @@ void PrintErrorMessage(DWORD errorCode) {
 #define subprocess_windows_inherit(handle,st) \
 	SetHandleInformation(handle,HANDLE_FLAG_INHERIT,st)
 
-int subprocess_open(subprocess_proc_t * output, char ** cmd, subprocess_pipe_t * proc_stdout, subprocess_pipe_t * proc_stderr, subprocess_pipe_t * proc_stdin) {
-	char * wcmd = subprocess_windows_cmdstr(cmd);
+int subprocess_open(subprocess_proc_t * output, subprocess_char_t ** cmd, subprocess_pipe_t * proc_stdout, subprocess_pipe_t * proc_stderr, subprocess_pipe_t * proc_stdin) {
+	subprocess_char_t * wcmd = subprocess_windows_cmdstr(cmd);
 	if (wcmd == NULL) {
 		return SUBPROCESS_MALLOC;
 	}
@@ -122,9 +122,9 @@ int subprocess_open(subprocess_proc_t * output, char ** cmd, subprocess_pipe_t *
 		proc_start.hStdInput = GetStdHandle(STD_INPUT_HANDLE);
 	}
 	
-	BOOL success = CreateProcessA(
+	BOOL success = CreateProcess(
 		NULL,                     // Application name
-		(LPSTR)wcmd,              // Command line
+		(LPTSTR)wcmd,             // Command line
 		NULL,                     // Process security attributes
 		NULL,                     // Primary thread security attributes
 		TRUE,                     // Handles are inherited

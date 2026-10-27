@@ -11,7 +11,7 @@ int subprocess_init(void) {
 		return n; \
 	}
 
-int subprocess_open(subprocess_proc_t * output, char ** cmd, subprocess_pipe_t * proc_stdout, subprocess_pipe_t * proc_stderr, subprocess_pipe_t * proc_stdin) {
+int subprocess_open(subprocess_proc_t * output, subprocess_char_t ** cmd, subprocess_pipe_t * proc_stdout, subprocess_pipe_t * proc_stderr, subprocess_pipe_t * proc_stdin) {
 	clnup_start(cleanup);
 		//clnup_var(cleanup, pid_t,pid,-1, kill(pid,SIGKILL); waitpid(pid,NULL,0));
 		clnup_table(cleanup, int,pipe_fork[2]);

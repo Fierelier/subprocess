@@ -8,10 +8,14 @@
 		return rtn; \
 	}
 
+#ifndef T
+	#define T TEXT
+#endif
+
 #ifndef _WIN32
-	#define PATHSEP "/"
+	#define PATHSEP T("/")
 #else
-	#define PATHSEP "\\"
+	#define PATHSEP T("\\")
 #endif
 
 #include <stdlib.h>
@@ -26,14 +30,14 @@ int main(int argc,char * argv[]) {
 	subprocess_pipe_t pipe_cat;
 	rtnif(rtn,subprocess_pipe_create(&pipe_cat));
 	rtnif(rtn,subprocess_open(&proc_cat,
-		(char *[]){"cat","pkg"PATHSEP"include"PATHSEP"subprocess"PATHSEP"test-md5.c",NULL},
+		(subprocess_char_t *[]){T("cat"),T("pkg") PATHSEP T("include") PATHSEP T("subprocess") PATHSEP T("test-md5.c"),NULL},
 	&pipe_cat,NULL,NULL));
 	
 	// md5sum
 	subprocess_proc_t proc_md5;
 	subprocess_return_t proc_md5_rtn;
 	rtnif(rtn,subprocess_open(&proc_md5,
-		(char *[]){"md5sum",NULL},
+		(subprocess_char_t *[]){T("md5sum"),NULL},
 	NULL,NULL,&pipe_cat));
 	
 	// wait for processes to exit
