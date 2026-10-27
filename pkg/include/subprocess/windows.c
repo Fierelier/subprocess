@@ -36,7 +36,7 @@ char * subprocess_windows_cmdstr(char ** argv) {
 	
 	command[0] = 0;
 	// If the command is empty, return an empty string
-	if (commandLength < 1) { return command; }
+	if (commandLength < 2) { return command; }
 	
 	// Add spaces and quotes where necessary
 	for (i = 0; argv[i] != NULL; i++) {
