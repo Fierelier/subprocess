@@ -39,7 +39,7 @@ Initializes the library. Only call once.
 ```c
 int subprocess_open(
 	subprocess_proc_t * output,
-	char ** cmd,
+	subprocess_char_t ** cmd,
 	subprocess_pipe_t * proc_stdout,
 	subprocess_pipe_t * proc_stderr,
 	subprocess_pipe_t * proc_stdin
@@ -51,12 +51,17 @@ Opens a process and puts the process data into `output`.
 `cmd` is the commandline, it is a list of the executable file (the first argument), some optional arguments, and `NULL`. It may look like this:
 
 ```c
-char * cmd[] = {"sh","-c","echo hello world",NULL}
+subprocess_char_t * cmd[] = {TEXT("sh"),TEXT("-c"),TEXT("echo hello world"),NULL}
 ```
 
 This would execute the equivalent of `sh -c "echo hello world"`.
 
 `proc_std*` are the pipes, either pass NULL, to leave the pipes unbound (use the parent's pipes) or pass pipes that you've created with `subprocess_pipe_create`.
+
+**NOTE!** If you summon a console program, make sure that at least one of these is true:  
+- Your program is a console program
+- You have at least one allocated console (you called `AllocConsole()`)
+- Every pipe (stdout/stderr/stdin) is bound
 
 ---
 
